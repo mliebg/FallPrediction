@@ -4,45 +4,45 @@ import sys
 
 import pandas as pd
 
-
 # Funktion zur Berechnung der Zeit bis zum nächsten isFallen = 1 Eintrag
-def berechne_dt(dataframe):
+def calc_dt(dataframe):
     is_fallen_index = dataframe[dataframe['isFallen'] == 1].index
-    next_is_fallen_index = is_fallen_index + 1
-    next_is_fallen_index = next_is_fallen_index[next_is_fallen_index < len(dataframe)]
 
     dt_list = []
-
+    last_index = 0
     for index in is_fallen_index:
-        if len(next_is_fallen_index) > 0:
-            next_index = next_is_fallen_index[0]
-            dt = dataframe.at[next_index, 'timestamp'] - dataframe.at[index, 'timestamp']
-            dt_list.append(dt.total_seconds())
-            next_is_fallen_index = next_is_fallen_index[1:]
+        if index - last_index > 1:
+            for i in range(last_index, index):
+                dt = dataframe.at[index, 'timestamp'] - dataframe.at[i, 'timestamp']
+                dt_list.append(dt)
         else:
-            # Setze MAX_INT_VALUE, wenn es keinen nächsten isFallen = 1 Eintrag gibt
-            dt_list.append(sys.maxsize)
+            dt_list.append(0)
+        last_index = index
 
     return dt_list
 
 
 threshold_rad = 25 * math.pi / 180
-src_dir = '.\DataAcquisition\DataLabeling\simpleLabel\data\'
+src_dir = r'./DataAcquisition/LogFiltering/filteredLogData/'
 
 for csv in os.listdir(src_dir):
-    output_csv = csv + '-labeled.csv'
-    print(output_csv)
-    '''
-    # Datenrahmen erstellen
-    df = pd.read_csv(csv)
+    if csv.endswith('csv'):
+        print(csv)
 
-    # Neue Spalte 'isFallen' erstellen
-    df['isFallen'] = df.apply(lambda row: 1 if abs(row['bodyPitch']) > threshold_rad or abs(row['bodyRoll']) > threshold_rad else 0, axis=1)
+        output_csv = './DataAcquisition/DataLabeling/fullyLabeled/data/' + csv[:len(csv)-4] + '_labeled.csv'
 
+        # Datenrahmen erstellen
+        df = pd.read_csv(src_dir + csv)
 
-    # Neue CSV-Datei speichern, inklusive der 'timestamp'-Spalte
-    df.to_csv(csv, index=False, columns=['timestamp', 'gyroYaw', 'gyroPitch', 'gyroRoll', 'accelX', 'accelY', 'accelZ', 'isFallen'])
-    '''
+        # 'isFallen' erstellen
+        df['isFallen'] = df.apply(lambda row: 1 if abs(row['bodyPitch']) > threshold_rad or abs(row['bodyRoll']) > threshold_rad else 0, axis=1)
 
+        # 'willFall_dt' erstellen
+        dt = calc_dt(df)
+        df['willFall_dt'] = dt + [sys.maxsize] * (len(df) - len(dt))
+        # Für isFallen = 1 Perioden ist der letzte Eintrag für willFall_dt != 0
+        # Q: Ist es sinnvoll für alle isFallen = 1 -> willFall_dt = 0 ODER doch so lassen?
 
-
+        # Neue CSV-Datei speichern, inklusive isFallen & willFall_dt
+        df.to_csv(output_csv, index=False, columns=['timestamp', 'gyroYaw', 'gyroPitch', 'gyroRoll', 'accelX', 'accelY', 'accelZ', 'isFallen', 'willFall_dt'])
+        ''''''

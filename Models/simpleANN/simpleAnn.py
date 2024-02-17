@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import os
 
 # Importing the data
-dir_path = './DataAcquisition/DataLabeling/simpleLabel-isFallen/data'
+dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
 csv_list = []
 
 for csv in os.listdir(dir_path):
@@ -16,6 +16,15 @@ for csv in os.listdir(dir_path):
         csv_list.append(dataframe)
 
 df = pd.concat(csv_list, axis=0, ignore_index=True)
+# 50 / 5ß ratio für willFall_in2s, um overfitting zu vermeiden
+pos_sets = df[df['isFallen'] == 1]
+neg_sets = df[df['isFallen'] == 0]
+to_remove = len(neg_sets) - len(pos_sets)
+neg_sets = neg_sets.drop(np.random.choice(neg_sets.index, to_remove, replace=False))
+df = pd.concat([pos_sets, neg_sets], axis=0, ignore_index=True)
+
+df.info()
+df.head()
 
 # split the data into train and test set
 train, test = train_test_split(
@@ -56,5 +65,5 @@ x = np.column_stack((test.gyroYaw.values,
 y = test.isFallen.values
 model.evaluate(x, y, batch_size=8)
 
-model.save('./Models/simpleANN/simpleAnn.keras')
+#model.save('./Models/simpleANN/simpleAnn.keras')
 

@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from keras.utils import to_categorical
+from keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelEncoder
@@ -15,6 +17,7 @@ import os
 # Import Data
 src_dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
 csv_list = []
+csv_to_read = 4
 
 file_count = 0
 for csv in os.listdir(src_dir_path):
@@ -37,10 +40,6 @@ for csv in os.listdir(src_dir_path):
         #timestamps_to_use = timestamps_to_use.drop(np.random.choice(timestamps_to_use.index, round(len(timestamps_to_use)*.98), replace=False))
 
         print(f'Data set length: {len(timestamps_to_use)}')
-
-        # timestamps_to_use.head()
-        # timestamps_to_use.info()
-        # print(timestamps_to_use)
 
         # Shape inputs to (200,6)
         time_steps = 200
@@ -76,7 +75,7 @@ for csv in os.listdir(src_dir_path):
         csv_list.append(inputs)
 
         file_count += 1
-        if file_count > 15:
+        if file_count > csv_to_read-1:
             break
 
 df = pd.concat(csv_list, axis=0, ignore_index=True)
@@ -108,4 +107,79 @@ arrays = [df.values for df in X_test]
 stacked = tf.stack(arrays)
 
 X_test_tensor = tf.convert_to_tensor(stacked)
+
+###################
+# MODEL
+###################
+
+
+def make_model(input_shape):
+    """
+    Defining the model
+    :param input_shape: shape of inputs
+    :return: CNN model
+    """
+    input_layer = keras.layers.Input(input_shape)
+
+    conv = keras.layers.Conv1D(filters=64, kernel_size=3, padding="same")(input_layer)
+    conv = keras.layers.BatchNormalization()(conv)
+    conv = keras.layers.ReLU()(conv)
+
+    gap = keras.layers.GlobalAveragePooling1D()(conv)
+
+    output_layer = keras.layers.Dense(num_classes, activation="softmax")(gap)
+
+    return keras.models.Model(inputs=input_layer, outputs=output_layer)
+
+
+model = make_model(input_shape=X_train_tensor.shape[1:])
+#keras.utils.plot_model(model, show_shapes=True)
+
+# Defining Callbacks
+callbacks = [
+    keras.callbacks.ModelCheckpoint(
+        'best_model.keras', save_best_only=True, monitor='val_loss'
+    ),
+    keras.callbacks.ReduceLROnPlateau(
+        monitor='val_loss', factor=0.5, patience=10, min_lr=0.00001
+    ),
+    keras.callbacks.EarlyStopping(
+        monitor='val_loss', patience=50, verbose=1
+    )
+]
+
+# Compiling the model
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001),
+              loss='sparse_categorical_crossentropy',
+              metrics=['sparse_categorical_accuracy'])
+
+# Fitting the model
+history = model.fit(
+    X_train_tensor,
+    y_train,
+    epochs=500,
+    batch_size=32,
+    callbacks=callbacks,
+    validation_split=0.2,
+    verbose=1)
+
+model = keras.models.load_model('best_model.keras')
+
+# Model Evaluation
+test_loss, test_acc = model.evaluate(X_test_tensor, y_test)
+
+print('Test accuracy', test_acc)
+print('Test loss', test_loss)
+
+# Plot model loss
+metric = 'sparse_categorical_accuracy'
+plt.figure()
+plt.plot(history.history[metric])
+plt.plot(history.history['val_' + metric])
+plt.title('model ' + metric)
+plt.ylabel(metric, fontsize='large')
+plt.xlabel("epoch", fontsize='large')
+plt.legend(['train', 'val'], loc='best')
+plt.show()
+#plt.close()
 

@@ -7,6 +7,7 @@ from keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 import os
 
 ##############################
@@ -16,6 +17,7 @@ import os
 src_dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
 csv_list = []
 
+csv_to_read = 15
 file_count = 0
 for csv in os.listdir(src_dir_path):
     if csv.endswith(".csv"):
@@ -76,7 +78,7 @@ for csv in os.listdir(src_dir_path):
         csv_list.append(inputs)
 
         file_count += 1
-        if file_count > 15:
+        if file_count > csv_to_read - 1:
             break
 
 df = pd.concat(csv_list, axis=0, ignore_index=True)
@@ -113,17 +115,31 @@ X_test_tensor = tf.convert_to_tensor(stacked)
 ##############################
 # MODEL
 ##############################
+def make_FCN_model(input_shape):
+    """
+    Defining the model
+    :param input_shape: shape of inputs
+    :return: FCN model
+    """
+    input_layer = keras.layers.Flatten(input_shape=input_shape)
+
+    hidden_layer = keras.layers.Dense(256, activation='relu')(input_layer)
+
+    output_layer = keras.layers.Dense(num_classes, activation='softmax')(hidden_layer)
+
+    return keras.models.Model(inputs=input_layer, outputs=output_layer)
+
 
 # Defining Callbacks
 callbacks = [
     keras.callbacks.ModelCheckpoint(
-        'best_model.keras', save_best_only=True, monitor='loss'
+        'best_model.keras', save_best_only=True, monitor='val_loss'
     ),
     keras.callbacks.ReduceLROnPlateau(
-        monitor='loss', factor=0.5, patience=20, min_lr=0.0001
+        monitor='val_loss', factor=0.5, patience=20, min_lr=0.0001
     ),
     keras.callbacks.EarlyStopping(
-        monitor='loss', patience=50, verbose=1
+        monitor='val_loss', patience=50, verbose=1
     )
 ]
 # Defining the model
@@ -145,16 +161,33 @@ history = model.fit(
     epochs=300,
     batch_size=32,
     callbacks=callbacks,
+    validation_split=0.2,
     verbose=1)
 
 # Evaluating the model
 print('MODEL EVALUATION')
 model = keras.models.load_model('best_model.keras')
-model.evaluate(X_test_tensor, y_test)#, batch_size=8
+# Model Evaluation
+test_loss, test_acc = model.evaluate(X_test_tensor, y_test)#batchsize = 8
+
+print('Test accuracy', test_acc)
+print('Test loss', test_loss)
 
 # Model summary
 print('MODEL SUMMARY')
 model.summary()
+
+# Plot model loss
+metric = 'sparse_categorical_accuracy'
+plt.figure()
+plt.plot(history.history[metric])
+plt.plot(history.history['val_' + metric])
+plt.title('model ' + metric)
+plt.ylabel(metric, fontsize='large')
+plt.xlabel("epoch", fontsize='large')
+plt.legend(['train', 'val'], loc='best')
+plt.show()
+#plt.close()
 
 # Confusion matrix
 print('CONFUSION MATRIX')

@@ -1,3 +1,5 @@
+# Fully Convolutional Network
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -117,7 +119,7 @@ def make_model(input_shape):
     """
     Defining the model
     :param input_shape: shape of inputs
-    :return: CNN model
+    :return: FCN model
     """
     input_layer = keras.layers.Input(input_shape)
 

@@ -17,7 +17,7 @@ import os
 # PREPROCESSING just like MLP
 ##############################
 # Import Data
-src_dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
+src_dir_path = './DataAcquisition/DataLabeling/FullyLabeled/data'
 csv_list = []
 csv_to_read = 4
 

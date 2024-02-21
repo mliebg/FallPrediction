@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import os
 
 # Importing the data
-dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
+dir_path = './DataAcquisition/DataLabeling/FullyLabeled/data'
 csv_list = []
 
 for csv in os.listdir(dir_path):

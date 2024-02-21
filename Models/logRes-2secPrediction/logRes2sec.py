@@ -18,7 +18,7 @@ print(tf.__version__)
 tf.random.set_seed(22)
 
 # Importing the data
-dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
+dir_path = './DataAcquisition/DataLabeling/FullyLabeled/data'
 csv_list = []
 my_sec_dot5 = 1 * 10 ** 6
 

@@ -16,7 +16,7 @@ import os
 # PREPROCESSING
 ##############################
 # Import Data
-src_dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
+src_dir_path = './DataAcquisition/DataLabeling/FullyLabeled/data'
 csv_list = []
 
 csv_to_read = 15

@@ -11,9 +11,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import LabelEncoder
 import os
 
-###################################################
-# PREPROCESSING just like Fully Connected Network
-###################################################
+##############################
+# PREPROCESSING just like MLP
+##############################
 # Import Data
 src_dir_path = './DataAcquisition/DataLabeling/fullyLabeled/data'
 csv_list = []

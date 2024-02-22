@@ -16,36 +16,39 @@ import os
 # PREPROCESSING
 ##############################
 # Import Data
-src_dir_path = './DataAcquisition/DataLabeling/FullyLabeled/data'
+src_dir_path = './DataAcquisition/DataLabeling/Z-Norm/data'
 csv_list = []
 
-csv_to_read = 15
+# Go through all CSV
+max_data = 1000
 file_count = 0
+total_data = 0
 for csv in os.listdir(src_dir_path):
     if csv.endswith(".csv"):
         print(f'read next: {csv}')
         csv_path = os.path.join(src_dir_path, csv)
         df = pd.read_csv(csv_path)
 
-        # delete isFallen == 1, bc Robot doesn't need to check for falling while falling
+
+        # Remove isFallen == 1, bc Robot doesn't need to check for falling while falling
         timestamps_to_use = df[df['isFallen'] != 1]
+
 
         # Filter data to 50/50 for will fall in 2s and stable walking (against Overfitting)
         pos_sets = timestamps_to_use[timestamps_to_use['willFall_dt'] <= 2 * 10 ** 6]
         neg_sets = timestamps_to_use[timestamps_to_use['willFall_dt'] > 2 * 10 ** 6]
         to_remove = len(neg_sets) - len(pos_sets)
         neg_sets = neg_sets.drop(np.random.choice(neg_sets.index, to_remove, replace=False))
-        timestamps_to_use = pd.concat([pos_sets['timestamp'], neg_sets['timestamp']])
+        timestamps_to_use = pd.concat([pos_sets['ts'], neg_sets['ts']])
 
-        # Menge reduzieren für Testfälle/Debug
-        #timestamps_to_use = timestamps_to_use.drop(np.random.choice(timestamps_to_use.index, round(len(timestamps_to_use)*.98), replace=False))
+
+        # Reduce data
+        if len(timestamps_to_use) > 1000:
+            timestamps_to_use = timestamps_to_use.drop(np.random.choice(timestamps_to_use.index, len(timestamps_to_use) - 1000, replace=False))
+
 
         print(f'Data set length: {len(timestamps_to_use)}')
-
-        # timestamps_to_use.head()
-        # timestamps_to_use.info()
-        # print(timestamps_to_use)
-
+        total_data += len(timestamps_to_use)
         # Shape inputs to (200,6)
         time_steps = 200
         inputs = pd.DataFrame(columns=['vals', 'willFall_dt'])
@@ -78,11 +81,9 @@ for csv in os.listdir(src_dir_path):
                                           else 4, axis=1)
 
         csv_list.append(inputs)
+        #break
 
-        file_count += 1
-        if file_count > csv_to_read - 1:
-            break
-
+print(f'total data amount: {total_data}')
 df = pd.concat(csv_list, axis=0, ignore_index=True)
 
 # Constructing the input
@@ -117,21 +118,6 @@ X_test_tensor = tf.convert_to_tensor(stacked)
 ##############################
 # MODEL
 ##############################
-def make_FCN_model(input_shape):
-    """
-    Defining the model
-    :param input_shape: shape of inputs
-    :return: FCN model
-    """
-    input_layer = keras.layers.Flatten(input_shape=input_shape)
-
-    hidden_layer = keras.layers.Dense(256, activation='relu')(input_layer)
-
-    output_layer = keras.layers.Dense(num_classes, activation='softmax')(hidden_layer)
-
-    return keras.models.Model(inputs=input_layer, outputs=output_layer)
-
-
 # Defining Callbacks
 callbacks = [
     keras.callbacks.ModelCheckpoint(
@@ -145,11 +131,31 @@ callbacks = [
     )
 ]
 # Defining the model
+def make_MLP_model(input_shape):
+    """
+    Defining the model
+    :param input_shape: shape of inputs
+    :return: MLP model
+    """
+    input_layer = keras.layers.Flatten(input_shape=input_shape)
+
+    h1 = keras.layers.Dense(32, activation='relu')(input_layer)
+    h2 = keras.layers.Dense(32, activation='relu')(h1)
+
+    output_layer = keras.layers.Dense(num_classes, activation='softmax')(h2)
+
+    return keras.models.Model(inputs=input_layer, outputs=output_layer)
+
+
+#model = make_MLP_model(input_shape=X_train_tensor.shape[1:])
+
 model = keras.Sequential([
     keras.layers.Flatten(input_shape=input_shape),
-    keras.layers.Dense(256, activation='relu'),
+    keras.layers.Dense(32, activation='relu'),
+    keras.layers.Dense(32, activation='relu'),
     keras.layers.Dense(num_classes, activation='softmax')
 ])
+
 
 # Compiling the model
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),

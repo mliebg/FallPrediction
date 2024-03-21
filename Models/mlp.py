@@ -5,19 +5,19 @@ import matplotlib.pyplot as plt
 import keras
 from keras import layers
 import keras_tuner
-from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2_as_graph
 
 ##############################
 # MultiLayer Perceptron
 ##############################
 
-# Load Data
-print("load data")
-ts = 200  # or 200
+ts = 100  # or 200
 if ts == 200:
     max_units = 160
 elif ts == 100:
     max_units = 256
+
+# Load Data
+print('load data')
 # Constructing the input
 with open(f'./DataPreprocessing/ts{ts}/ts{ts}_xtrain.pkl', 'rb') as f:
     X_train = pickle.load(f)
@@ -64,7 +64,7 @@ def build_model(hp):
 
     model.add(keras.layers.Dense(num_classes, activation='softmax'))
 
-    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001),
                   loss='sparse_categorical_crossentropy',
                   metrics=['sparse_categorical_accuracy'])
     return model
@@ -79,10 +79,8 @@ tuner = keras_tuner.BayesianOptimization(
     directory='./Models',
     project_name=f'mlp{ts}_tuning'
 )
-#print('searching best hypers')
-#tuner.search(X_train_tensor, y_train, epochs=50, validation_data=(X_val_tensor, y_val))
-
-print('fitting best model')
+print('searching best hypers')
+tuner.search(X_train_tensor, y_train, epochs=50, validation_data=(X_val_tensor, y_val))
 best_hps = tuner.get_best_hyperparameters(1)
 model = build_model(best_hps[0])
 model.Name = f'best MLP {ts}'
@@ -90,10 +88,10 @@ model.Name = f'best MLP {ts}'
 # Defining Callbacks
 callbacks = [
     keras.callbacks.ModelCheckpoint(
-        f'./Models/Evaluation/models/xxbest_mlp{ts}.keras', save_best_only=True, monitor='val_loss'
+        f'./Models/Evaluation/keras-models/best_mlp{ts}.keras', save_best_only=True, monitor='val_loss'
     ),
     keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss', factor=0.5, patience=20, min_lr=0.0001
+        monitor='val_loss', factor=0.5, patience=20, min_lr=0.00001
     ),
     keras.callbacks.EarlyStopping(
         monitor='val_loss', patience=50, verbose=1
@@ -101,102 +99,25 @@ callbacks = [
 ]
 
 # Fitting the model
+print('fitting best model')
 history = model.fit(
     X_train_tensor,
     y_train,
     epochs=1000,
-    batch_size=32,
+    batch_size=16,
     callbacks=callbacks,
     validation_data=(X_val_tensor, y_val),
     verbose=1)
 
-# Plot model loss
+# Plot training model loss
 metric = 'sparse_categorical_accuracy'
 plt.figure()
 plt.plot(history.history[metric])
 plt.plot(history.history['val_' + metric])
-plt.title('best MLP Training')
+plt.title(f'MLP{ts} Training')
 plt.ylabel('SCA', fontsize='large')
 plt.xlabel("Epoche", fontsize='large')
 plt.legend(['Trainingsset SCA', 'Validierungsset SCA'], loc='best')
-plt.xlim(0, 300)
+plt.xlim(0, 1000)
 plt.ylim(0, 1)
 plt.show()
-# plt.close()
-
-# Top 10 best model with lowest FLOPs
-def get_flops(model):
-    concrete = tf.function(lambda inputs: model(inputs))
-
-    concrete_func = concrete.get_concrete_function(
-
-        [tf.TensorSpec([1, *inputs.shape[1:]]) for inputs in model.inputs])
-
-    frozen_func, graph_def = convert_variables_to_constants_v2_as_graph(concrete_func)
-
-    with tf.Graph().as_default() as graph:
-        tf.graph_util.import_graph_def(graph_def, name='')
-
-        run_meta = tf.compat.v1.RunMetadata()
-
-        opts = tf.compat.v1.profiler.ProfileOptionBuilder.float_operation()
-
-        flops = tf.compat.v1.profiler.profile(graph=graph, run_meta=run_meta, cmd="op", options=opts)
-
-        return flops.total_float_ops
-
-
-print('fitting best model with lowest FLOPs')
-best_hps = tuner.get_best_hyperparameters(100)
-best_hp = best_hps[0]
-count = 0
-for hp in best_hps:
-    f_best = get_flops(build_model(best_hp))
-    f_next = get_flops(build_model(hp))
-    if f_best > f_next:
-        best_hp = hp
-        count += 1
-    elif f_best == f_next:
-        continue
-    if count > 9:
-        break
-
-model = build_model(best_hp)
-model.Name = f'best MLP {ts} FLOPS'
-
-# Defining Callbacks
-callbacks = [
-    keras.callbacks.ModelCheckpoint(
-        f'./Models/Evaluation/models/xxfbest_mlp{ts}.keras', save_best_only=True, monitor='val_loss'
-    ),
-    keras.callbacks.ReduceLROnPlateau(
-        monitor='val_loss', factor=0.5, patience=20, min_lr=0.0001
-    ),
-    keras.callbacks.EarlyStopping(
-        monitor='val_loss', patience=50, verbose=1
-    )
-]
-
-# Fitting the model
-history = model.fit(
-    X_train_tensor,
-    y_train,
-    epochs=1000,
-    batch_size=32,
-    callbacks=callbacks,
-    validation_data=(X_val_tensor, y_val),
-    verbose=1)
-
-# Plot model loss
-metric = 'sparse_categorical_accuracy'
-plt.figure()
-plt.plot(history.history[metric])
-plt.plot(history.history['val_' + metric])
-plt.title('reduced FLOPs MLP Training')
-plt.ylabel('SCA', fontsize='large')
-plt.xlabel("Epoche", fontsize='large')
-plt.legend(['Trainingsset SCA', 'Validierungsset SCA'], loc='best')
-plt.xlim(0, 300)
-plt.ylim(0, 1)
-plt.show()
-# plt.close()

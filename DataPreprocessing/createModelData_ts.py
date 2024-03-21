@@ -47,14 +47,14 @@ for csv in os.listdir(src_dir_path):
 
         print(f'Data set length: {len(timestamps_to_use)}')
         total_data += len(timestamps_to_use)
-        # Shape inputs to (200,6)
-        time_steps = 100
+
+        time_steps = 100 # repeat with time_steps = 200
         inputs = pd.DataFrame(columns=['vals', 'willFall_dt'])
         old_p = .0
         count = 0
         for i in timestamps_to_use.index:
             if i < time_steps - 1:
-                continue  # skip erste Zeilen, die nicht genügend Vorgänger-Einträge haben
+                continue  # skip first rows that have not enough rows before them to form a sequence
 
             vals_i = pd.DataFrame(columns=['gyroYaw', 'gyroPitch', 'gyroRoll', 'accelX', 'accelY', 'accelZ'])
             for j in range(time_steps):
@@ -79,9 +79,9 @@ for csv in os.listdir(src_dir_path):
                                           else 4, axis=1)
 
         csv_list.append(inputs)
-        #break
 
-print(f'total data amount: {total_data}')  # 19875 ohne Goalie
+
+print(f'total data amount: {total_data}')  # 19875 without Goalie
 df = pd.concat(csv_list, axis=0, ignore_index=True)
 
 # Constructing the input
@@ -99,21 +99,21 @@ X_train, X_val, y_train, y_val = train_test_split(
 
 
 # Dump data for later use in model training
-with open("ts100_xtrain.pkl", "wb") as f:
+with open(f"ts{time_steps}_xtrain.pkl", "wb") as f:
     pickle.dump(X_train, f)
 f.close()
-with open("ts100_xval.pkl", "wb") as f:
+with open(f"ts{time_steps}_xval.pkl", "wb") as f:
     pickle.dump(X_val, f)
 f.close()
-with open("ts100_xtest.pkl", "wb") as f:
+with open(f"ts{time_steps}_xtest.pkl", "wb") as f:
     pickle.dump(X_test, f)
 f.close()
-with open("ts100_ytrain.pkl", "wb") as f:
+with open(f"ts{time_steps}_ytrain.pkl", "wb") as f:
     pickle.dump(y_train, f)
 f.close()
-with open("ts100_yval.pkl", "wb") as f:
+with open(f"ts{time_steps}_yval.pkl", "wb") as f:
     pickle.dump(y_val, f)
 f.close()
-with open("ts100_ytest.pkl", "wb") as f:
+with open(f"ts{time_steps}_ytest.pkl", "wb") as f:
     pickle.dump(y_test, f)
 f.close()

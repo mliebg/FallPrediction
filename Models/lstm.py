@@ -1,22 +1,20 @@
-import pickle
 import numpy as np
-import matplotlib.pyplot as plt
+import pickle
 import tensorflow as tf
 import keras
-from keras import layers
+import matplotlib.pyplot as plt
 import keras_tuner
+from keras import layers
 
 ##############################
-# Fully Convolutional Network
+# Long Short-Term Memory
 ##############################
 
-ts = 200  # or 100
+ts = 200
 if ts == 200:
-    max_filter = 19
-    max_kernel = 3
+    max_units = 13
 elif ts == 100:
-    max_filter = 26
-    max_kernel = 4
+    max_units = 20
 
 # Load Data
 print('load data')
@@ -53,23 +51,15 @@ X_val_tensor = tf.convert_to_tensor(stacked)
 
 # Defining the model
 def build_model(hp):
-    model = keras.Sequential()
-    model.add(keras.layers.Input(input_shape))
-    for i in range(hp.Int('num_layers', 1, 3)):
-        model.add(layers.Conv1D(
-            filters=hp.Int(f'conv1dFs_{i}', min_value=5, max_value=max_filter, step=1),
-            kernel_size=hp.Int(f'kernelS_{i}', min_value=2, max_value=max_kernel, step=1)))
-        if hp.Boolean('MaxPool'):
-            model.add(layers.MaxPooling1D(2))
-        else:
-            model.add(layers.AvgPool1D(2))
+    model = tf.keras.models.Sequential()
+    model.add(layers.LSTM(13, input_shape=input_shape))
+    model.add(layers.Dense(num_classes, activation='softmax'))
 
-    model.add(layers.Flatten())
-    model.add(layers.Dense(num_classes, activation="softmax"))
-
+    # Compile
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0001),
                   loss='sparse_categorical_crossentropy',
                   metrics=['sparse_categorical_accuracy'])
+
     return model
 
 
@@ -77,24 +67,23 @@ def build_model(hp):
 tuner = keras_tuner.BayesianOptimization(
     hypermodel=build_model,
     objective='val_loss',
-    max_trials=100,
+    max_trials=10,  # LSTM doesn't need 100 Trials bc there is only one parameter to tune
     executions_per_trial=1,
     directory='./Models',
-    project_name=f'fcn{ts}_tuning',
-    overwrite=True
+    project_name=f'lstm{ts}_tuning'
 )
 print('searching best hypers')
-tuner.search(X_train_tensor, y_train, epochs=50, validation_data=(X_val_tensor, y_val))
+tuner.search(X_train_tensor, y_train, epochs=25, validation_data=(X_val_tensor, y_val))
 
 print('fitting best model')
 best_hps = tuner.get_best_hyperparameters(1)
 model = build_model(best_hps[0])
-model.Name = f'best FCN {ts}'
+model.Name = f'best LSTM {ts}'
 
 # Defining Callbacks
 callbacks = [
     keras.callbacks.ModelCheckpoint(
-        f'./Models/Evaluation/keras-models/best_fcn{ts}.keras', save_best_only=True, monitor='val_loss'
+        f'./Models/Evaluation/keras-models/best_lstm{ts}.keras', save_best_only=True, monitor='val_loss'
     ),
     keras.callbacks.ReduceLROnPlateau(
         monitor='val_loss', factor=0.5, patience=20, min_lr=0.0001
@@ -104,7 +93,6 @@ callbacks = [
     )
 ]
 
-# Fitting the model
 history = model.fit(
     X_train_tensor,
     y_train,
@@ -114,15 +102,13 @@ history = model.fit(
     validation_data=(X_val_tensor, y_val),
     verbose=1)
 
-# Plot training model loss
+# Plot model loss
 metric = 'sparse_categorical_accuracy'
 plt.figure()
 plt.plot(history.history[metric])
 plt.plot(history.history['val_' + metric])
-plt.title(f'FCN{ts} Training')
+plt.title('LSTM Training' + metric)
 plt.ylabel('SCA', fontsize='large')
-plt.xlabel("Epoche", fontsize='large')
+plt.xlabel('Epoche', fontsize='large')
 plt.legend(['Trainingsset SCA', 'Validierungsset SCA'], loc='best')
-plt.xlim(0, 1000)
-plt.ylim(0, 1)
 plt.show()

@@ -1,0 +1,17 @@
+mean:
+gyroYaw       -3.084462e-03
+gyroPitch      1.452974e-03
+gyroRoll       1.882001e-03
+accelX         1.047554e+00
+accelY         4.658718e-02
+accelZ        -9.248304e+00
+dtype: float64
+
+std:
+gyroYaw        6.941248e-01
+gyroPitch      4.843609e-01
+gyroRoll       4.082001e-01
+accelX         2.746805e+00
+accelY         2.088371e+00
+accelZ         3.410700e+00
+dtype: float64

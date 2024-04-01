@@ -52,7 +52,7 @@ X_val_tensor = tf.convert_to_tensor(stacked)
 # Defining the model
 def build_model(hp):
     model = tf.keras.models.Sequential()
-    model.add(layers.LSTM(13, input_shape=input_shape))
+    model.add(layers.LSTM(filters=hp.Int('units', min_value=5, max_value=max_units, step=1), input_shape=input_shape))
     model.add(layers.Dense(num_classes, activation='softmax'))
 
     # Compile

@@ -1,6 +1,8 @@
 import keras
 import pickle
 import tensorflow as tf
+#import tensorrt
+import keras.utils
 from utils import get_flops
 import os
 import numpy as np
@@ -50,9 +52,9 @@ def get_fp_and_fn(model, x, y):
 
 
 print('MODEL EVALUATION')
-models_dir_path = './Models/keras-models'  # directory of saved keras-models
+models_dir_path = './Models/Evaluation/keras-models'  # directory of saved keras-models
 
-for ts in [100, 200]:  # type of inputs (length of time series)
+for ts in [50]:  # type of inputs (length of time series) 100, 200
     # Load Test data
     print(f'loading test data for sequence len: {ts}')
     # Inputs
@@ -80,16 +82,17 @@ for ts in [100, 200]:  # type of inputs (length of time series)
         # Model Summary
         print('MODEL SUMMARY')
         model.summary()
+        keras.utils.plot_model(model)
 
         # Model Evaluation
         test_loss, test_acc = model.evaluate(X_test_tensor, y_test)
-        fp_fn = get_fp_and_fn(model, X_test_tensor, y_test)
-        print(f'Test FPs/FNs:\n'
-              f'(0) stable walking  : {fp_fn[0]}\n'
-              f'(1) falling in 2.0s : {fp_fn[1]}\n'
-              f'(2) falling in 1.0s : {fp_fn[2]}\n'
-              f'(3) falling in 0.5s : {fp_fn[3]}\n'
-              f'(4) falling in 0.2s : {fp_fn[4]}\n')
+        #fp_fn = get_fp_and_fn(model, X_test_tensor, y_test)
+        #print(f'Test FPs/FNs:\n'
+        #      f'(0) stable walking  : {fp_fn[0]}\n'
+        #      f'(1) falling in 2.0s : {fp_fn[1]}\n'
+        #      f'(2) falling in 1.0s : {fp_fn[2]}\n'
+        #      f'(3) falling in 0.5s : {fp_fn[3]}\n'
+        #      f'(4) falling in 0.2s : {fp_fn[4]}\n')
 
         print('Test accuracy', test_acc)
         print('Test loss', test_loss)

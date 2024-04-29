@@ -34,6 +34,6 @@ for csv in os.listdir(src_dir_path):
         df['accelZ'] = (df['accelZ'] - mean['accelZ']) / std['accelZ']
 
         out_csv = csv[:-11] + 'z-norm.csv'
-        df.to_csv(f'./DataAcquisition/DataLabeling/StatefulRnnData/standardized_data/data/{out_csv}', columns=['gyroYaw', 'gyroPitch', 'gyroRoll', 'accelX', 'accelY', 'accelZ', 'isFallen', 'willFall_dt'], index_label='ts')
+        df.to_csv(f'./DataPreprocessing/Z-Norm/data/{out_csv}', columns=['gyroYaw', 'gyroPitch', 'gyroRoll', 'accelX', 'accelY', 'accelZ', 'isFallen', 'willFall_dt'], index_label='ts')
 
 print(f'mean: {mean}\nstd: {std}')

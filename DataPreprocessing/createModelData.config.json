@@ -1,0 +1,6 @@
+{
+    "input_dir" : "/home/dev/repos/FallPrediction/DataPreprocessing/Z-Norm/data",
+    "output_dir" : "/home/dev/repos/FallPrediction/DataPreprocessing",
+    "time_steps" : 35,
+    "trigger_range" : 1
+}

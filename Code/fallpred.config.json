@@ -1,0 +1,16 @@
+{
+    "data": {
+        "input_dir" : "/home/dev/repos/FallPrediction/DataPreprocessing/Z-Norm/data",
+        "output_dir" : "/home/dev/repos/FallPrediction/DataPreprocessing",
+        "time_steps" : 24,
+        "trigger_range" : 1
+    },
+    "build": {
+        "data_dir" : "/home/dev/repos/FallPrediction/DataPreprocessing/ts24_range1_data",
+        "lstm_units" : 32
+    },
+    "eval": {
+        "logfile_path" : "/home/dev/repos/FallPrediction/DataAcquisition/DataLabeling/FullyLabeled/data/excludeForTests/imu_5pathfinder-11-25-34_labeled.csv",
+        "model_path" : "/home/dev/repos/FallPrediction/Code/Models/keras-models/lstm32-24-1-relu.keras"
+    }
+}
